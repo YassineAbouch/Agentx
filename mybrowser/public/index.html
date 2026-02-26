@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyBrowser - Extracteur Web</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 2.5em;
+        }
+
+        .url-input-section {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        #urlInput {
+            flex: 1;
+            padding: 15px 20px;
+            border: 2px solid #667eea;
+            border-radius: 10px;
+            font-size: 1.1em;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        #urlInput:focus {
+            border-color: #764ba2;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        button {
+            padding: 15px 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 30px;
+            background: white;
+            border-radius: 15px;
+            margin-bottom: 20px;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .results {
+            display: none;
+        }
+
+        .results.active {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .info-item {
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .info-item:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            font-weight: bold;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            color: #333;
+            word-break: break-word;
+        }
+
+        .link-item {
+            padding: 10px;
+            margin: 5px 0;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            transition: all 0.2s;
+        }
+
+        .link-item:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+
+        .link-text {
+            font-weight: bold;
+            color: #333;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .link-url {
+            color: #667eea;
+            font-size: 0.9em;
+            word-break: break-all;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 5px 12px;
+            background: #667eea;
+            color: white;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        .badge.success { background: #28a745; }
+        .badge.info { background: #17a2b8; }
+        .badge.warning { background: #ffc107; color: #333; }
+
+        .content-preview {
+            max-height: 300px;
+            overflow-y: auto;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 0.95em;
+            line-height: 1.6;
+        }
+
+        .screenshot-container {
+            margin-top: 20px;
+        }
+
+        .screenshot-container img {
+            width: 100%;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid #dc3545;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            background: #e9ecef;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tab.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .list-container {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        /* Notification toast */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 20px 30px;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            z-index: 10000;
+            animation: slideIn 0.3s ease;
+            max-width: 400px;
+        }
+
+        .toast.success {
+            border-left: 5px solid #28a745;
+        }
+
+        .toast.error {
+            border-left: 5px solid #dc3545;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Zone de notification -->
+    <div id="toast-container"></div>
+
+    <div class="container">
+        <header>
+            <h1>🌐 MyBrowser - Extracteur Web</h1>
+            <div class="url-input-section">
+                <input 
+                    type="text" 
+                    id="urlInput" 
+                    placeholder="Entrez l'URL du site web (ex: www.digisense.es)"
+                    value="www.digisense.es"
+                >
+                <button onclick="extractWebsite()" id="extractBtn">🚀 Extraire</button>
+                <button onclick="location.href='/control.html'" style="background: linear-gradient(135deg, #28a745 0%, #218838 100%);">
+                    🎮 Mode Contrôle
+                </button>
+            </div>
+            <p style="color: #666; font-size: 0.95em;">
+                💡 Entrez une URL pour extraire tous les liens, le contenu, les images et les métadonnées
+            </p>
+        </header>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <h2>Extraction en cours...</h2>
+            <p>Veuillez patienter pendant que nous analysons la page</p>
+        </div>
+
+        <div class="results" id="results"></div>
+    </div>
+
+    <script>
+        let currentData = null;
+
+        // Fonction pour afficher une notification toast
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `
+                <strong>${type === 'success' ? '✅' : '❌'}</strong>
+                <p style="margin: 5px 0 0 0;">${message}</p>
+            `;
+            container.appendChild(toast);
+
+            // Supprimer après 4 secondes
+            setTimeout(() => {
+                toast.style.animation = 'slideIn 0.3s ease reverse';
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+
+        async function extractWebsite() {
+            const urlInput = document.getElementById('urlInput');
+            const loading = document.getElementById('loading');
+            const results = document.getElementById('results');
+            const extractBtn = document.getElementById('extractBtn');
+
+            let url = urlInput.value.trim();
+            if (!url) {
+                alert('Veuillez entrer une URL');
+                return;
+            }
+
+            // Ajouter https:// si nécessaire
+            if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                url = 'https://' + url;
+            }
+
+            // Afficher le loading
+            loading.classList.add('active');
+            results.classList.remove('active');
+            results.innerHTML = '';
+            extractBtn.disabled = true;
+
+            try {
+                // 1. Ouvrir la page (mode rapide)
+                console.log('Opening:', url);
+                const openResult = await fetch('/open', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url, waitUntil: 'domcontentloaded' })
+                });
+                const openData = await openResult.json();
+
+                if (!openData.ok) {
+                    throw new Error(openData.error || 'Erreur lors de l\'ouverture');
+                }
+
+                // 2. Attendre un peu que le JS se charge
+                await new Promise(resolve => setTimeout(resolve, 1000));
+
+                // 3. Extraire toutes les données en parallèle
+                const [title, links, text, status] = await Promise.all([
+                    fetch('/title').then(r => r.json()),
+                    fetch('/links?limit=500').then(r => r.json()),
+                    fetch('/content/text').then(r => r.json()),
+                    fetch('/status').then(r => r.json())
+                ]);
+
+                // 4. Extraire les métadonnées et images via eval
+                const metaData = await fetch('/eval?code=' + encodeURIComponent(`
+                    JSON.stringify({
+                        description: document.querySelector('meta[name="description"]')?.content || '',
+                        keywords: document.querySelector('meta[name="keywords"]')?.content || '',
+                        images: Array.from(document.querySelectorAll('img')).slice(0, 20).map(img => ({
+                            src: img.src,
+                            alt: img.alt || ''
+                        })),
+                        h1: Array.from(document.querySelectorAll('h1')).map(h => h.innerText),
+                        h2: Array.from(document.querySelectorAll('h2')).map(h => h.innerText).slice(0, 10),
+                        inputs: Array.from(document.querySelectorAll('input, textarea, select')).map((inp, idx) => ({
+                            type: inp.type || inp.tagName.toLowerCase(),
+                            name: inp.name || '',
+                            placeholder: inp.placeholder || '',
+                            id: inp.id || '',
+                            selector: inp.id ? '#' + inp.id : (inp.name ? '[name="' + inp.name + '"]' : inp.tagName.toLowerCase() + ':nth-of-type(' + (idx + 1) + ')')
+                        })),
+                        buttons: Array.from(document.querySelectorAll('button, input[type="submit"], input[type="button"]')).map((btn, idx) => ({
+                            text: btn.innerText || btn.value || 'Button',
+                            id: btn.id || '',
+                            class: btn.className || '',
+                            selector: btn.id ? '#' + btn.id : (btn.className ? '.' + btn.className.split(' ')[0] : 'button:nth-of-type(' + (idx + 1) + ')')
+                        }))
+                    })
+                `)).then(r => r.json());
+
+                const meta = metaData.result ? JSON.parse(metaData.result) : {};
+
+                // 5. Screenshot
+                const screenshot = await fetch('/screenshot?fullPage=true').then(r => r.json());
+
+                // Stocker les données
+                currentData = {
+                    url: status.url,
+                    title: title.title,
+                    links: links.links || [],
+                    text: text.text || '',
+                    meta,
+                    screenshot: screenshot.path
+                };
+
+                // Afficher les résultats
+                displayResults(currentData);
+
+            } catch (error) {
+                results.innerHTML = `
+                    <div class="card full-width error">
+                        <h2>❌ Erreur</h2>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+                results.classList.add('active');
+            } finally {
+                loading.classList.remove('active');
+                extractBtn.disabled = false;
+            }
+        }
+
+        function displayResults(data) {
+            const results = document.getElementById('results');
+            
+            // Catégoriser les liens
+            const internalLinks = data.links.filter(l => 
+                l.href.includes(new URL(data.url).hostname) || l.href.startsWith('/')
+            );
+            const externalLinks = data.links.filter(l => 
+                !l.href.includes(new URL(data.url).hostname) && !l.href.startsWith('/') && !l.href.startsWith('#')
+            );
+
+            results.innerHTML = `
+                <!-- Badge de mise à jour -->
+                <div style="background: #28a745; color: white; padding: 10px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
+                    🔄 Page actualisée - ${new Date().toLocaleTimeString('fr-FR')}
+                </div>
+
+                <!-- Informations générales -->
+                <div class="card full-width">
+                    <h2>📊 Informations Générales</h2>
+                    <div class="info-item">
+                        <div class="info-label">🌐 URL</div>
+                        <div class="info-value"><a href="${data.url}" target="_blank">${data.url}</a></div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">📄 Titre</div>
+                        <div class="info-value">${data.title}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">📝 Description</div>
+                        <div class="info-value">${data.meta.description || 'Non disponible'}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">🏷️ Mots-clés</div>
+                        <div class="info-value">${data.meta.keywords || 'Non disponible'}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">📊 Statistiques</div>
+                        <div class="info-value">
+                            <span class="badge info">${data.links.length} liens totaux</span>
+                            <span class="badge success">${internalLinks.length} liens internes</span>
+                            <span class="badge warning">${externalLinks.length} liens externes</span>
+                            <span class="badge">${data.text.length} caractères</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Titres -->
+                <div class="card">
+                    <h2>📌 Structure de la page</h2>
+                    <div class="tabs">
+                        <button class="tab active" onclick="switchTab(event, 'h1-tab')">H1</button>
+                        <button class="tab" onclick="switchTab(event, 'h2-tab')">H2</button>
+                    </div>
+                    <div id="h1-tab" class="tab-content active">
+                        <div class="list-container">
+                            ${data.meta.h1 && data.meta.h1.length > 0 ? 
+                                data.meta.h1.map(h => `<div class="info-item">${h}</div>`).join('') :
+                                '<p>Aucun titre H1 trouvé</p>'
+                            }
+                        </div>
+                    </div>
+                    <div id="h2-tab" class="tab-content">
+                        <div class="list-container">
+                            ${data.meta.h2 && data.meta.h2.length > 0 ?
+                                data.meta.h2.map(h => `<div class="info-item">${h}</div>`).join('') :
+                                '<p>Aucun titre H2 trouvé</p>'
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Formulaires -->
+                <div class="card">
+                    <h2>📝 Champs de formulaire</h2>
+                    <div class="list-container">
+                        ${data.meta.inputs && data.meta.inputs.length > 0 ?
+                            data.meta.inputs.map((inp, idx) => `
+                                <div class="link-item" style="margin-bottom: 15px;">
+                                    <span class="badge">${inp.type}</span>
+                                    <strong>${inp.name || inp.id || 'Sans nom'}</strong><br>
+                                    <small style="color: #666;">${inp.placeholder || 'Pas de placeholder'}</small>
+                                    <small style="display: block; color: #999; margin-top: 5px;">Sélecteur: ${inp.selector}</small>
+                                    <div style="margin-top: 10px;">
+                                        <input type="text" 
+                                               id="input-value-${idx}" 
+                                               placeholder="Entrez une valeur..." 
+                                               style="width: 70%; padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
+                                        <button onclick="fillInput('${inp.selector.replace(/'/g, "\\'")}', '${inp.type}', ${idx})" 
+                                                style="padding: 8px 15px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; margin-left: 5px;">
+                                            ✅ Remplir
+                                        </button>
+                                    </div>
+                                </div>
+                            `).join('') :
+                            '<p>Aucun champ de formulaire trouvé</p>'
+                        }
+                    </div>
+                    ${data.meta.buttons && data.meta.buttons.length > 0 ? `
+                        <h3 style="margin-top: 20px; color: #667eea;">Boutons</h3>
+                        <div class="list-container">
+                            ${data.meta.buttons.map((btn, idx) => `
+                                <div class="link-item" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                                    <div style="flex: 1;">
+                                        <span>🔘 ${btn.text}</span><br>
+                                        <small style="color: #999;">Sélecteur: ${btn.selector}</small>
+                                    </div>
+                                    <button onclick="clickButton('${btn.selector.replace(/'/g, "\\'")}', '${btn.text.replace(/'/g, "\\'")}')" 
+                                            style="padding: 8px 15px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                                        👆 Cliquer
+                                    </button>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                </div>
+
+                <!-- Liens -->
+                <div class="card full-width">
+                    <h2>🔗 Liens (${data.links.length} total)</h2>
+                    <div class="tabs">
+                        <button class="tab active" onclick="switchTab(event, 'internal-links')">
+                            Internes (${internalLinks.length})
+                        </button>
+                        <button class="tab" onclick="switchTab(event, 'external-links')">
+                            Externes (${externalLinks.length})
+                        </button>
+                    </div>
+                    <div id="internal-links" class="tab-content active">
+                        <div class="list-container">
+                            ${internalLinks.slice(0, 50).map(link => `
+                                <div class="link-item">
+                                    <span class="link-text">${link.text || '[Sans texte]'}</span>
+                                    <a href="${link.href}" target="_blank" class="link-url">${link.href}</a>
+                                </div>
+                            `).join('')}
+                            ${internalLinks.length > 50 ? `<p style="margin-top: 10px; color: #666;">... et ${internalLinks.length - 50} autres liens</p>` : ''}
+                        </div>
+                    </div>
+                    <div id="external-links" class="tab-content">
+                        <div class="list-container">
+                            ${externalLinks.slice(0, 50).map(link => `
+                                <div class="link-item">
+                                    <span class="link-text">${link.text || '[Sans texte]'}</span>
+                                    <a href="${link.href}" target="_blank" class="link-url">${link.href}</a>
+                                </div>
+                            `).join('')}
+                            ${externalLinks.length > 50 ? `<p style="margin-top: 10px; color: #666;">... et ${externalLinks.length - 50} autres liens</p>` : ''}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Images -->
+                <div class="card">
+                    <h2>🖼️ Images (${data.meta.images ? data.meta.images.length : 0})</h2>
+                    <div class="list-container">
+                        ${data.meta.images && data.meta.images.length > 0 ?
+                            data.meta.images.map(img => `
+                                <div class="link-item">
+                                    <span class="link-text">${img.alt || '[Sans description]'}</span>
+                                    <a href="${img.src}" target="_blank" class="link-url">${img.src}</a>
+                                </div>
+                            `).join('') :
+                            '<p>Aucune image trouvée</p>'
+                        }
+                    </div>
+                </div>
+
+                <!-- Contenu textuel -->
+                <div class="card full-width">
+                    <h2>📝 Contenu Textuel</h2>
+                    <div class="content-preview">
+                        ${data.text.slice(0, 2000).split('\n').map(line => 
+                            line.trim() ? `<p>${line.trim()}</p>` : ''
+                        ).join('')}
+                        ${data.text.length > 2000 ? '<p><em>... contenu tronqué</em></p>' : ''}
+                    </div>
+                </div>
+
+                <!-- Screenshot -->
+                <div class="card full-width">
+                    <h2>📸 Capture d'écran</h2>
+                    <div class="screenshot-container">
+                        <img src="/${data.screenshot}" alt="Screenshot">
+                    </div>
+                </div>
+            `;
+
+            results.classList.add('active');
+        }
+
+        function switchTab(event, tabId) {
+            // Désactiver tous les tabs
+            const tabs = event.target.parentElement.querySelectorAll('.tab');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            
+            // Activer le tab cliqué
+            event.target.classList.add('active');
+
+            // Cacher tous les contenus
+            const parent = event.target.closest('.card');
+            const contents = parent.querySelectorAll('.tab-content');
+            contents.forEach(content => content.classList.remove('active'));
+
+            // Afficher le contenu correspondant
+            parent.querySelector('#' + tabId).classList.add('active');
+        }
+
+        // Fonction pour remplir un champ de texte
+        async function fillInput(selector, type, idx) {
+            const inputValue = document.getElementById(`input-value-${idx}`).value;
+            if (!inputValue) {
+                showToast('Veuillez entrer une valeur', 'error');
+                return;
+            }
+
+            try {
+                showToast('Remplissage du champ en cours...', 'success');
+                
+                const response = await fetch('/type', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        selector: selector,
+                        text: inputValue,
+                        clear: true
+                    })
+                });
+
+                const result = await response.json();
+                if (result.ok) {
+                    showToast('Champ rempli avec succès ! Actualisation...', 'success');
+                    // Attendre un peu puis recharger toute la page
+                    setTimeout(async () => {
+                        await reloadPageData();
+                    }, 1000);
+                } else {
+                    showToast('Erreur : ' + result.error, 'error');
+                }
+            } catch (error) {
+                showToast('Erreur : ' + error.message, 'error');
+            }
+        }
+
+        // Fonction pour cliquer sur un bouton
+        async function clickButton(selector, buttonText) {
+            try {
+                showToast('Clic sur le bouton en cours...', 'success');
+                
+                const response = await fetch('/click', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        selector: selector,
+                        timeout: 10000
+                    })
+                });
+
+                const result = await response.json();
+                if (result.ok) {
+                    showToast('Bouton cliqué avec succès ! Actualisation...', 'success');
+                    // Attendre que la page charge puis recharger toutes les données
+                    setTimeout(async () => {
+                        await reloadPageData();
+                    }, 2000);
+                } else {
+                    showToast('Erreur : ' + result.error, 'error');
+                }
+            } catch (error) {
+                showToast('Erreur : ' + error.message, 'error');
+            }
+        }
+
+        // Fonction pour recharger toutes les données de la page actuelle
+        async function reloadPageData() {
+            const loading = document.getElementById('loading');
+            const results = document.getElementById('results');
+
+            try {
+                // Afficher le loader
+                loading.classList.add('active');
+                results.classList.remove('active');
+
+                // Attendre un peu que la page se stabilise
+                await new Promise(resolve => setTimeout(resolve, 500));
+
+                // 1. Récupérer le statut pour avoir l'URL actuelle
+                const status = await fetch('/status').then(r => r.json());
+                console.log('Reloading data for:', status.url);
+
+                // 2. Extraire toutes les données en parallèle
+                const [title, links, text] = await Promise.all([
+                    fetch('/title').then(r => r.json()),
+                    fetch('/links?limit=500').then(r => r.json()),
+                    fetch('/content/text').then(r => r.json())
+                ]);
+
+                // 3. Extraire les métadonnées et images via eval
+                const metaData = await fetch('/eval?code=' + encodeURIComponent(`
+                    JSON.stringify({
+                        description: document.querySelector('meta[name="description"]')?.content || '',
+                        keywords: document.querySelector('meta[name="keywords"]')?.content || '',
+                        images: Array.from(document.querySelectorAll('img')).slice(0, 20).map(img => ({
+                            src: img.src,
+                            alt: img.alt || ''
+                        })),
+                        h1: Array.from(document.querySelectorAll('h1')).map(h => h.innerText),
+                        h2: Array.from(document.querySelectorAll('h2')).map(h => h.innerText).slice(0, 10),
+                        inputs: Array.from(document.querySelectorAll('input, textarea, select')).map((inp, idx) => ({
+                            type: inp.type || inp.tagName.toLowerCase(),
+                            name: inp.name || '',
+                            placeholder: inp.placeholder || '',
+                            id: inp.id || '',
+                            selector: inp.id ? '#' + inp.id : (inp.name ? '[name="' + inp.name + '"]' : inp.tagName.toLowerCase() + ':nth-of-type(' + (idx + 1) + ')')
+                        })),
+                        buttons: Array.from(document.querySelectorAll('button, input[type="submit"], input[type="button"]')).map((btn, idx) => ({
+                            text: btn.innerText || btn.value || 'Button',
+                            id: btn.id || '',
+                            class: btn.className || '',
+                            selector: btn.id ? '#' + btn.id : (btn.className ? '.' + btn.className.split(' ')[0] : 'button:nth-of-type(' + (idx + 1) + ')')
+                        }))
+                    })
+                `)).then(r => r.json());
+
+                const meta = metaData.result ? JSON.parse(metaData.result) : {};
+
+                // 4. Screenshot
+                const screenshot = await fetch('/screenshot?fullPage=true').then(r => r.json());
+
+                // Mettre à jour les données
+                currentData = {
+                    url: status.url,
+                    title: title.title,
+                    links: links.links || [],
+                    text: text.text || '',
+                    meta,
+                    screenshot: screenshot.path
+                };
+
+                // Afficher les résultats
+                displayResults(currentData);
+
+                // Masquer le loader
+                loading.classList.remove('active');
+
+            } catch (error) {
+                loading.classList.remove('active');
+                results.innerHTML = `
+                    <div class="error">
+                        <h2>❌ Erreur</h2>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+                results.classList.add('active');
+            }
+        }
+
+        // Fonction pour mettre à jour le screenshot
+        async function updateScreenshot() {
+            try {
+                const response = await fetch('/screenshot?fullPage=true');
+                const result = await response.json();
+                if (result.ok) {
+                    // Mettre à jour l'image du screenshot
+                    const img = document.querySelector('.screenshot-container img');
+                    if (img) {
+                        img.src = '/' + result.path + '?t=' + Date.now();
+                    }
+                }
+            } catch (error) {
+                console.error('Erreur lors de la mise à jour du screenshot:', error);
+            }
+        }
+
+        // Permettre la soumission avec Enter
+        document.getElementById('urlInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                extractWebsite();
+            }
+        });
+    </script>
+</body>
+</html>

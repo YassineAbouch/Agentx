@@ -138,3 +138,9 @@ screenshot.png
 screen_report.json
 bouton.png
 *.png
+
+# MyBrowser
+mybrowser/node_modules/
+mybrowser/screenshots/
+mybrowser/pdfs/
+mybrowser/package-lock.json

@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyBrowser - Contrôle Visuel</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #1a1a2e;
+            color: white;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            grid-template-rows: 60px 1fr;
+            height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            grid-column: 1 / -1;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+
+        .header h1 {
+            font-size: 1.5em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #28a745;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Panneau de contrôle */
+        .control-panel {
+            background: #16213e;
+            padding: 20px;
+            overflow-y: auto;
+            border-right: 1px solid #0f3460;
+        }
+
+        .section {
+            margin-bottom: 25px;
+        }
+
+        .section-title {
+            color: #667eea;
+            font-size: 1.1em;
+            margin-bottom: 15px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+            color: #aaa;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 10px;
+            background: #0f3460;
+            border: 1px solid #667eea;
+            border-radius: 8px;
+            color: white;
+            font-size: 0.95em;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            border-color: #764ba2;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+            margin-bottom: 10px;
+            font-size: 0.95em;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button.secondary {
+            background: #0f3460;
+            border: 1px solid #667eea;
+        }
+
+        button.danger {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        }
+
+        button.success {
+            background: linear-gradient(135deg, #28a745 0%, #218838 100%);
+        }
+
+        /* Viewer */
+        .viewer {
+            background: #0f3460;
+            padding: 20px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .viewer-header {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            align-items: center;
+        }
+
+        .url-bar {
+            flex: 1;
+            display: flex;
+            gap: 10px;
+        }
+
+        .url-bar input {
+            flex: 1;
+        }
+
+        .url-bar button {
+            width: auto;
+            padding: 10px 20px;
+            margin: 0;
+        }
+
+        .screenshot-viewer {
+            flex: 1;
+            background: #000;
+            border-radius: 10px;
+            overflow: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .screenshot-viewer img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            z-index: 10;
+        }
+
+        .loading-overlay.active {
+            display: flex;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Actions rapides */
+        .quick-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .quick-actions button {
+            margin: 0;
+        }
+
+        /* Historique */
+        .history {
+            max-height: 200px;
+            overflow-y: auto;
+            background: #0f3460;
+            border-radius: 8px;
+            padding: 10px;
+        }
+
+        .history-item {
+            padding: 8px;
+            background: #1a1a2e;
+            border-left: 3px solid #667eea;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            font-size: 0.85em;
+        }
+
+        .history-item .time {
+            color: #888;
+            font-size: 0.8em;
+        }
+
+        /* Séquences */
+        .sequence-list {
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .sequence-item {
+            background: #0f3460;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .sequence-item:hover {
+            background: #1a4d7a;
+            transform: translateX(5px);
+        }
+
+        .sequence-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .sequence-steps {
+            font-size: 0.85em;
+            color: #aaa;
+        }
+
+        /* Toast notifications */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: white;
+            color: #333;
+            padding: 15px 25px;
+            border-radius: 8px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+            z-index: 1000;
+            animation: slideUp 0.3s ease;
+        }
+
+        .toast.success {
+            border-left: 4px solid #28a745;
+        }
+
+        .toast.error {
+            border-left: 4px solid #dc3545;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(100px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0f3460;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #764ba2;
+        }
+    </style>
+</head>
+<body>
+    <div id="toast-container"></div>
+
+    <div class="main-container">
+        <!-- Header -->
+        <div class="header">
+            <h1>
+                <span class="status-indicator"></span>
+                🎮 MyBrowser Control
+            </h1>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <input type="checkbox" id="autoRefreshToggle" onchange="toggleAutoRefresh()">
+                    <span>🔄 Auto-refresh</span>
+                </label>
+                <button onclick="location.href='/'" style="width: auto; padding: 10px 20px; margin: 0;">
+                    📊 Mode Extraction
+                </button>
+            </div>
+        </div>
+
+        <!-- Panneau de contrôle -->
+        <div class="control-panel">
+            <!-- Navigation -->
+            <div class="section">
+                <div class="section-title">🌐 Navigation</div>
+                <div class="input-group">
+                    <label>URL</label>
+                    <input type="text" id="navUrl" placeholder="https://example.com" value="https://www.digisense.es">
+                </div>
+                <button onclick="navigate()" class="success">🚀 Ouvrir</button>
+                <div class="quick-actions">
+                    <button onclick="goBack()" class="secondary">⬅️ Retour</button>
+                    <button onclick="goForward()" class="secondary">➡️ Avancer</button>
+                    <button onclick="reload()" class="secondary">🔄 Recharger</button>
+                    <button onclick="refreshView()" class="secondary">📸 Actualiser</button>
+                </div>
+            </div>
+
+            <!-- Actions sur les éléments -->
+            <div class="section">
+                <div class="section-title">⚡ Actions</div>
+                <div class="input-group">
+                    <label>Sélecteur CSS</label>
+                    <input type="text" id="selector" placeholder="Ex: #email, button.login">
+                </div>
+                <div class="input-group">
+                    <label>Texte à saisir (optionnel)</label>
+                    <input type="text" id="textInput" placeholder="Texte pour les champs input">
+                </div>
+                <div class="quick-actions">
+                    <button onclick="clickElement()" class="success">👆 Cliquer</button>
+                    <button onclick="typeText()" class="success">✍️ Saisir</button>
+                    <button onclick="scrollPage()" class="secondary">📜 Scroll</button>
+                    <button onclick="hoverElement()" class="secondary">🎯 Hover</button>
+                </div>
+            </div>
+
+            <!-- Séquences automatiques -->
+            <div class="section">
+                <div class="section-title">🤖 Séquences</div>
+                <div class="sequence-list">
+                    <div class="sequence-item" onclick="runSequence('login')">
+                        <div class="sequence-name">🔐 Login Automatique</div>
+                        <div class="sequence-steps">Remplir email + password + clic login</div>
+                    </div>
+                    <div class="sequence-item" onclick="runSequence('search')">
+                        <div class="sequence-name">🔍 Recherche</div>
+                        <div class="sequence-steps">Trouver champ + saisir + soumettre</div>
+                    </div>
+                    <div class="sequence-item" onclick="runSequence('extract')">
+                        <div class="sequence-name">📊 Extraction Complète</div>
+                        <div class="sequence-steps">Tous liens + forms + données</div>
+                    </div>
+                </div>
+                <button onclick="createCustomSequence()" class="secondary">➕ Créer Séquence</button>
+            </div>
+
+            <!-- Configuration Login -->
+            <div class="section">
+                <div class="section-title">🔐 Config Login</div>
+                <div class="input-group">
+                    <label>Email/Username</label>
+                    <input type="text" id="loginEmail" placeholder="user@example.com">
+                </div>
+                <div class="input-group">
+                    <label>Password</label>
+                    <input type="password" id="loginPassword" placeholder="********">
+                </div>
+                <div class="input-group">
+                    <label>Sélecteur Email</label>
+                    <input type="text" id="loginEmailSelector" placeholder="#email" value="#email">
+                </div>
+                <div class="input-group">
+                    <label>Sélecteur Password</label>
+                    <input type="text" id="loginPasswordSelector" placeholder="#password" value="#password">
+                </div>
+                <div class="input-group">
+                    <label>Sélecteur Bouton</label>
+                    <input type="text" id="loginButtonSelector" placeholder="button[type='submit']" value="button[type='submit']">
+                </div>
+                <button onclick="executeLogin()" class="success">🚀 Exécuter Login</button>
+            </div>
+
+            <!-- Historique -->
+            <div class="section">
+                <div class="section-title">📜 Historique</div>
+                <div class="history" id="history"></div>
+                <button onclick="clearHistory()" class="danger">🗑️ Effacer</button>
+            </div>
+        </div>
+
+        <!-- Viewer -->
+        <div class="viewer">
+            <div class="viewer-header">
+                <div class="url-bar">
+                    <input type="text" id="currentUrl" readonly placeholder="URL actuelle...">
+                    <button onclick="copyUrl()">📋 Copier</button>
+                </div>
+            </div>
+            <div class="screenshot-viewer" id="screenshotViewer">
+                <div class="loading-overlay" id="loadingOverlay">
+                    <div class="spinner"></div>
+                    <p>Chargement...</p>
+                    <p style="font-size: 0.9em; margin-top: 10px; color: #aaa;">
+                        💡 Mode headless activé - Pas de fenêtre Chromium visible<br>
+                        Toute l'interaction se fait via cette interface
+                    </p>
+                </div>
+                <img id="screenshot" src="" alt="Chargez une page pour voir l'aperçu" style="display: none;">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let history = [];
+        let currentUrl = '';
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `<strong>${type === 'success' ? '✅' : '❌'}</strong> ${message}`;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 4000);
+        }
+
+        function addHistory(action) {
+            const time = new Date().toLocaleTimeString('fr-FR');
+            history.unshift({ action, time });
+            if (history.length > 20) history.pop();
+            updateHistoryDisplay();
+        }
+
+        function updateHistoryDisplay() {
+            const historyEl = document.getElementById('history');
+            historyEl.innerHTML = history.map(h => `
+                <div class="history-item">
+                    <div class="time">${h.time}</div>
+                    <div>${h.action}</div>
+                </div>
+            `).join('');
+        }
+
+        function clearHistory() {
+            history = [];
+            updateHistoryDisplay();
+            showToast('Historique effacé', 'success');
+        }
+
+        function showLoading() {
+            document.getElementById('loadingOverlay').classList.add('active');
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingOverlay').classList.remove('active');
+        }
+
+        async function refreshView() {
+            try {
+                showLoading();
+                const response = await fetch('/screenshot?fullPage=true');
+                const data = await response.json();
+                
+                if (data.ok) {
+                    const img = document.getElementById('screenshot');
+                    img.src = '/' + data.path + '?t=' + Date.now();
+                    img.style.display = 'block';
+                    
+                    // Mettre à jour l'URL
+                    const status = await fetch('/status').then(r => r.json());
+                    currentUrl = status.url;
+                    document.getElementById('currentUrl').value = currentUrl;
+                    
+                    addHistory('📸 Capture écran mise à jour');
+                } else {
+                    showToast(data.error, 'error');
+                }
+            } catch (error) {
+                showToast('Erreur: ' + error.message, 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function navigate() {
+            const url = document.getElementById('navUrl').value.trim();
+            if (!url) {
+                showToast('Veuillez entrer une URL', 'error');
+                return;
+            }
+
+            try {
+                showLoading();
+                const response = await fetch('/open', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url, waitUntil: 'domcontentloaded' })
+                });
+                const data = await response.json();
+                
+                if (data.ok) {
+                    showToast('Page ouverte: ' + data.title, 'success');
+                    addHistory(`🌐 Navigué vers ${url}`);
+                    await new Promise(r => setTimeout(r, 1000));
+                    await refreshView();
+                } else {
+                    showToast(data.error, 'error');
+                }
+            } catch (error) {
+                showToast('Erreur: ' + error.message, 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function goBack() {
+            try {
+                showLoading();
+                const response = await fetch('/nav/back', { method: 'POST' });
+                const data = await response.json();
+                if (data.ok) {
+                    showToast('Retour arrière', 'success');
+                    addHistory('⬅️ Retour');
+                    await refreshView();
+                }
+            } catch (error) {
+                showToast('Erreur: ' + error.message, 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function goForward() {
+            try {
+                showLoading();
+                const response = await fetch('/nav/forward', { method: 'POST' });
+                const data = await response.json();
+                if (data.ok) {
+                    showToast('Avancé', 'success');
+                    addHistory('➡️ Avancer');
+                    await refreshView();
+                }
+            } catch (error) {
+                showToast('Erreur: ' + error.message, 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function reload() {
+            try {
+                showLoading();
+                const response = await fetch('/reload', { method: 'POST' });
+                const data = await response.json();
+                if (data.ok) {
+                    showToast('Page rechargée', 'success');
+                    addHistory('🔄 Rechargement');
+                    await refreshView();
+                }
+            } catch (error) {
+                showToast('Erreur: ' + error.message, 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function clickElement() {
+            const selector = document.getElementById('selector').value.trim();
+            if (!selector) {
+                showToast('Veuillez entrer un sélecteur', 'error');
+                return;
+            }
+
+            try {
+                showLoading();
+                const response = await fetch('/click', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ selector, timeout: 10000 })
+                });
+                const data = await response.json();
+                
+                if (data.ok) {
+                    showToast(`Cliqué sur: ${selector}`, 'success');
+                    addHistory(`👆 Clic: ${selector}`);
+                    await new Promise(r => setTimeout(r, 1500));
+                    await refreshView();
+                } else {
+                    showToast(data.error, 'error');
+                }
+            } catch (error) {
+                showToast('Erreur: ' + error.message, 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function typeText() {
+            const selector = document.getElementById('selector').value.trim();
+            const text = document.getElementById('textInput').value;
+            
+            if (!selector) {
+                showToast('Veuillez entrer un sélecteur', 'error');
+                return;
+            }
+            if (!text) {
+                showToast('Veuillez entrer du texte', 'error');
+                return;
+            }
+
+            try {
+                showLoading();
+                const response = await fetch('/type', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ selector, text, clear: true })
+                });
+                const data = await response.json();
+                
+                if (data.ok) {
+                    showToast(`Texte saisi dans: ${selector}`, 'success');
+                    addHistory(`✍️ Saisi: "${text}" dans ${selector}`);
+                    await new Promise(r => setTimeout(r, 500));
+                    await refreshView();
+                } else {
+                    showToast(data.error, 'error');
+                }
+            } catch (error) {
+                showToast('Erreur: ' + error.message, 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function scrollPage() {
+            try {
+                const response = await fetch('/scroll', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ y: 500 })
+                });
+                const data = await response.json();
+                if (data.ok) {
+                    showToast('Page scrollée', 'success');
+                    addHistory('📜 Scroll vers le bas');
+                    await refreshView();
+                }
+            } catch (error) {
+                showToast('Erreur: ' + error.message, 'error');
+            }
+        }
+
+        async function hoverElement() {
+            const selector = document.getElementById('selector').value.trim();
+            if (!selector) {
+                showToast('Veuillez entrer un sélecteur', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/hover', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ selector })
+                });
+                const data = await response.json();
+                if (data.ok) {
+                    showToast(`Survol: ${selector}`, 'success');
+                    addHistory(`🎯 Hover: ${selector}`);
+                }
+            } catch (error) {
+                showToast('Erreur: ' + error.message, 'error');
+            }
+        }
+
+        async function executeLogin() {
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value.trim();
+            const emailSel = document.getElementById('loginEmailSelector').value.trim();
+            const passSel = document.getElementById('loginPasswordSelector').value.trim();
+            const btnSel = document.getElementById('loginButtonSelector').value.trim();
+
+            if (!email || !password) {
+                showToast('Veuillez remplir email et password', 'error');
+                return;
+            }
+
+            try {
+                showLoading();
+                showToast('🔐 Séquence login démarrée...', 'success');
+
+                // 1. Remplir l'email
+                addHistory(`✍️ Remplissage email...`);
+                let response = await fetch('/type', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ selector: emailSel, text: email, clear: true })
+                });
+                let data = await response.json();
+                if (!data.ok) throw new Error('Email: ' + data.error);
+                await new Promise(r => setTimeout(r, 500));
+
+                // 2. Remplir le password
+                addHistory(`✍️ Remplissage password...`);
+                response = await fetch('/type', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ selector: passSel, text: password, clear: true })
+                });
+                data = await response.json();
+                if (!data.ok) throw new Error('Password: ' + data.error);
+                await new Promise(r => setTimeout(r, 500));
+
+                // 3. Cliquer sur le bouton
+                addHistory(`👆 Clic sur bouton login...`);
+                response = await fetch('/click', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ selector: btnSel, timeout: 10000 })
+                });
+                data = await response.json();
+                if (!data.ok) throw new Error('Bouton: ' + data.error);
+
+                // 4. Attendre la navigation
+                await new Promise(r => setTimeout(r, 2000));
+
+                showToast('✅ Login exécuté avec succès!', 'success');
+                addHistory('🔐 Login complet');
+                await refreshView();
+
+            } catch (error) {
+                showToast('Erreur login: ' + error.message, 'error');
+                addHistory('❌ Login échoué: ' + error.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function runSequence(type) {
+            showToast(`Exécution séquence: ${type}`, 'success');
+            
+            if (type === 'login') {
+                executeLogin();
+            } else if (type === 'search') {
+                showToast('Séquence recherche - À configurer', 'error');
+            } else if (type === 'extract') {
+                window.open('/', '_blank');
+            }
+        }
+
+        function createCustomSequence() {
+            showToast('Création de séquence personnalisée - En développement', 'error');
+        }
+
+        function copyUrl() {
+            const url = document.getElementById('currentUrl').value;
+            navigator.clipboard.writeText(url);
+            showToast('URL copiée!', 'success');
+        }
+
+        // Auto-refresh
+        let autoRefreshInterval = null;
+        
+        function toggleAutoRefresh() {
+            const checkbox = document.getElementById('autoRefreshToggle');
+            if (checkbox.checked) {
+                showToast('Auto-refresh activé (toutes les 3 secondes)', 'success');
+                autoRefreshInterval = setInterval(() => {
+                    refreshView();
+                }, 3000);
+            } else {
+                showToast('Auto-refresh désactivé', 'success');
+                if (autoRefreshInterval) {
+                    clearInterval(autoRefreshInterval);
+                    autoRefreshInterval = null;
+                }
+            }
+        }
+        
+        // Initialiser
+        window.addEventListener('load', () => {
+            updateHistoryDisplay();
+        });
+    </script>
+</body>
+</html>

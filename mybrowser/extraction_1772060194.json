@@ -1,0 +1,30 @@
+{
+  "url": "http://localhost:3000/",
+  "title": "🐍 Client Python",
+  "timestamp": "2026-02-25 22:56:34",
+  "links": {
+    "total": 0,
+    "internal": 0,
+    "external": 0,
+    "navigation": [],
+    "internal_sample": [],
+    "external_sample": []
+  },
+  "content": {
+    "text_length": 1640,
+    "lines": 67,
+    "sample": [
+      "🌐 MyBrowser API",
+      "Contrôleur de navigateur programmable avec Playwright",
+      "ONLINE",
+      "✅ Serveur actif",
+      "Le serveur fonctionne sur http://localhost:3000",
+      "Mode: Visible",
+      "🚀 Démarrage rapide",
+      "# Ouvrir une page curl -X POST http://localhost:3000/open \\ -H \"Content-Type: application/json\" \\ -d '{\"url\": \"https://example.com\"}' # Récupérer le titre curl http://localhost:3000/title # Lister les liens curl http://localhost:3000/links",
+      "📋 Navigation",
+      "POST"
+    ]
+  },
+  "screenshot": "screenshots/shot-1772060194406.png"
+}

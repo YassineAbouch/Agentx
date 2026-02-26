@@ -1,0 +1,23 @@
+{
+  "name": "mybrowser",
+  "version": "1.0.0",
+  "description": "Programmable browser controller with Playwright",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "install-browsers": "npx playwright install"
+  },
+  "keywords": [
+    "playwright",
+    "browser",
+    "automation",
+    "scraping"
+  ],
+  "author": "YassineAbouch",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "playwright": "^1.40.0"
+  }
+}
